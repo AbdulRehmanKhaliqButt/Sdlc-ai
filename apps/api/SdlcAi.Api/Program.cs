@@ -11,6 +11,7 @@ builder.Services.AddDbContext<SdlcAiDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("SdlcAi")
         ?? "Host=localhost;Port=5432;Database=sdlc_ai;Username=postgres;Password=postgres"));
 builder.Services.AddScoped<PersistentProjectStore>();
+builder.Services.AddScoped<QaPlanningService>();
 builder.Services.AddHttpClient<AiAnalysisClient>(client =>
 {
     client.BaseAddress = new Uri(builder.Configuration["AiService:BaseUrl"] ?? "http://localhost:8000");
@@ -57,5 +58,19 @@ app.MapPost("/api/projects/{projectId:guid}/analyses/{analysisId:guid}/approve",
 app.MapGet("/api/projects/{projectId:guid}/audit",
     async (Guid projectId, PersistentProjectStore store, CancellationToken ct) =>
         Results.Ok(await store.AuditAsync(projectId, ct)));
+
+app.MapPost("/api/projects/{projectId:guid}/qa/test-plans",
+    async (Guid projectId, GenerateTestPlanRequest request, QaPlanningService qa, CancellationToken ct) =>
+    {
+        var plan = await qa.GenerateAsync(projectId, request.AnalysisId, ct);
+        return plan is null ? Results.BadRequest(new { error = "An approved analysis is required." }) : Results.Ok(plan);
+    });
+
+app.MapPost("/api/projects/{projectId:guid}/qa/test-plans/{testPlanId:guid}/approve",
+    async (Guid projectId, Guid testPlanId, QaPlanningService qa, CancellationToken ct) =>
+    {
+        var plan = await qa.ApproveAsync(projectId, testPlanId, ct);
+        return plan is null ? Results.NotFound() : Results.Ok(plan);
+    });
 
 app.Run();
