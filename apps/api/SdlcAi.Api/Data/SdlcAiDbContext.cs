@@ -8,6 +8,7 @@ public sealed class SdlcAiDbContext(DbContextOptions<SdlcAiDbContext> options) :
     public DbSet<ProjectEntity> Projects => Set<ProjectEntity>();
     public DbSet<AnalysisEntity> Analyses => Set<AnalysisEntity>();
     public DbSet<AuditEventEntity> AuditEvents => Set<AuditEventEntity>();
+    public DbSet<TestPlanEntity> TestPlans => Set<TestPlanEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -27,6 +28,11 @@ public sealed class SdlcAiDbContext(DbContextOptions<SdlcAiDbContext> options) :
             e.Property(x => x.ResultJson).HasColumnType("jsonb").IsRequired();
             e.Property(x => x.Status).HasMaxLength(40).IsRequired();
             e.HasOne<ProjectEntity>().WithMany().HasForeignKey(x => x.ProjectId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<TestPlanEntity>(e =>
+        {
+            e.ToTable("test_plans"); e.HasKey(x => x.Id); e.Property(x => x.TestCasesJson).HasColumnType("jsonb").IsRequired(); e.Property(x => x.Status).HasMaxLength(40).IsRequired(); e.HasIndex(x => new { x.ProjectId, x.AnalysisId });
         });
 
         modelBuilder.Entity<AuditEventEntity>(e =>
