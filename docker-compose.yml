@@ -1,0 +1,17 @@
+services:
+  ai-service:
+    build:
+      context: ./apps/ai-service
+    ports:
+      - "8000:8000"
+
+  api:
+    build:
+      context: ./apps/api/SdlcAi.Api
+    environment:
+      AiService__BaseUrl: http://ai-service:8000
+      ASPNETCORE_URLS: http://+:8080
+    ports:
+      - "8080:8080"
+    depends_on:
+      - ai-service
