@@ -1,4 +1,20 @@
 services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: sdlc_ai
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - sdlc_ai_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d sdlc_ai"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   ai-service:
     build:
       context: ./apps/ai-service
@@ -10,11 +26,15 @@ services:
       context: ./apps/api/SdlcAi.Api
     environment:
       AiService__BaseUrl: http://ai-service:8000
+      ConnectionStrings__SdlcAi: Host=postgres;Port=5432;Database=sdlc_ai;Username=postgres;Password=postgres
       ASPNETCORE_URLS: http://+:8080
     ports:
       - "8080:8080"
     depends_on:
-      - ai-service
+      postgres:
+        condition: service_healthy
+      ai-service:
+        condition: service_started
 
   web:
     build:
@@ -25,3 +45,6 @@ services:
       - "3000:3000"
     depends_on:
       - api
+
+volumes:
+  sdlc_ai_data:
