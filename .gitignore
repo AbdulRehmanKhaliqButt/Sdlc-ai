@@ -1,0 +1,25 @@
+# .NET
+**/bin/
+**/obj/
+*.user
+.vs/
+
+# Node
+node_modules/
+.next/
+out/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# IDE / OS
+.idea/
+.DS_Store
