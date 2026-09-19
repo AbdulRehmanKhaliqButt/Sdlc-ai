@@ -3,7 +3,6 @@ using SdlcAi.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddOpenApi();
 builder.Services.AddCors(options => options.AddDefaultPolicy(policy =>
     policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod()));
 builder.Services.AddSingleton<ProjectStore>();
@@ -17,11 +16,6 @@ builder.Services.AddScoped<IAnalysisEngine, RemoteAnalysisEngine>();
 var app = builder.Build();
 
 app.UseCors();
-
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-}
 
 app.MapGet("/health", () => Results.Ok(new { status = "ok", service = "sdlc-ai-api" }));
 
