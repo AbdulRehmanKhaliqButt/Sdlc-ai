@@ -3,20 +3,19 @@ using SdlcAi.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddOpenApi();
+builder.Services.AddCors(options => options.AddDefaultPolicy(policy =>
+    policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod()));
 builder.Services.AddSingleton<ProjectStore>();
 builder.Services.AddHttpClient<AiAnalysisClient>(client =>
 {
     client.BaseAddress = new Uri(
         builder.Configuration["AiService:BaseUrl"] ?? "http://localhost:8000");
 });
+builder.Services.AddScoped<IAnalysisEngine, RemoteAnalysisEngine>();
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-}
+app.UseCors();
 
 app.MapGet("/health", () => Results.Ok(new { status = "ok", service = "sdlc-ai-api" }));
 
@@ -32,7 +31,7 @@ app.MapPost("/api/projects", (CreateProjectRequest request, ProjectStore store) 
 app.MapGet("/api/projects", (ProjectStore store) => Results.Ok(store.GetAll()));
 
 app.MapPost("/api/projects/{projectId:guid}/analyses",
-    async (Guid projectId, AnalyzeTranscriptRequest request, ProjectStore store, AiAnalysisClient ai, CancellationToken ct) =>
+    async (Guid projectId, AnalyzeTranscriptRequest request, ProjectStore store, IAnalysisEngine ai, CancellationToken ct) =>
 {
     if (string.IsNullOrWhiteSpace(request.Transcript))
         return Results.BadRequest(new { error = "Transcript is required." });

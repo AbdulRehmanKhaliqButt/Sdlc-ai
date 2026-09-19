@@ -15,3 +15,13 @@ services:
       - "8080:8080"
     depends_on:
       - ai-service
+
+  web:
+    build:
+      context: ./apps/web
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:8080
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
