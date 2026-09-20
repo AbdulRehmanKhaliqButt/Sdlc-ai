@@ -12,6 +12,7 @@ builder.Services.AddDbContext<SdlcAiDbContext>(options =>
         ?? "Host=localhost;Port=5432;Database=sdlc_ai;Username=postgres;Password=postgres"));
 builder.Services.AddScoped<PersistentProjectStore>();
 builder.Services.AddScoped<QaPlanningService>();
+builder.Services.AddScoped<DevelopmentPlanningService>();
 builder.Services.AddHttpClient<AiAnalysisClient>(client =>
 {
     client.BaseAddress = new Uri(builder.Configuration["AiService:BaseUrl"] ?? "http://localhost:8000");
@@ -70,6 +71,22 @@ app.MapPost("/api/projects/{projectId:guid}/qa/test-plans/{testPlanId:guid}/appr
     async (Guid projectId, Guid testPlanId, QaPlanningService qa, CancellationToken ct) =>
     {
         var plan = await qa.ApproveAsync(projectId, testPlanId, ct);
+        return plan is null ? Results.NotFound() : Results.Ok(plan);
+    });
+
+app.MapPost("/api/projects/{projectId:guid}/development/plans",
+    async (Guid projectId, GenerateImplementationPlanRequest request, DevelopmentPlanningService dev, CancellationToken ct) =>
+    {
+        var plan = await dev.GenerateAsync(projectId, request.AnalysisId, request.TestPlanId, ct);
+        return plan is null
+            ? Results.BadRequest(new { error = "Approved requirements and QA test plan are required." })
+            : Results.Ok(plan);
+    });
+
+app.MapPost("/api/projects/{projectId:guid}/development/plans/{planId:guid}/approve",
+    async (Guid projectId, Guid planId, DevelopmentPlanningService dev, CancellationToken ct) =>
+    {
+        var plan = await dev.ApproveAsync(projectId, planId, ct);
         return plan is null ? Results.NotFound() : Results.Ok(plan);
     });
 
