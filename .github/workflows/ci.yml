@@ -34,3 +34,20 @@ jobs:
         working-directory: apps/web
       - run: npm run build
         working-directory: apps/web
+  e2e:
+    runs-on: ubuntu-latest
+    needs: [api, ai, web]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: docker compose up -d --build
+      - run: npm install
+        working-directory: apps/e2e
+      - run: npx playwright install --with-deps chromium
+        working-directory: apps/e2e
+      - run: npm test
+        working-directory: apps/e2e
+      - if: always()
+        run: docker compose down -v
