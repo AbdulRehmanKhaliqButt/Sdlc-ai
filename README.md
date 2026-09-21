@@ -1,30 +1,40 @@
 # SDLC AI
 
-An AI-assisted software delivery platform that turns grooming and requirements discussions into structured, reviewable engineering work.
+An enterprise-oriented, human-in-the-loop AI software delivery platform.
 
-## Vision
+## Workflow
 
-SDLC AI is designed around human approval gates rather than autonomous changes. The first vertical slice is:
-
-1. Create a project
-2. Submit a grooming transcript
-3. Analyze requirements
-4. Generate user stories, acceptance criteria, and open questions
-5. Review and approve the analysis
-
-Later phases will add Jira/GitHub integrations, QA agents, implementation agents, Playwright E2E testing, evaluations, and delivery analytics.
+Grooming transcript → structured requirements → Product Owner approval → QA test plan → QA approval → development plan → developer approval → Jira/GitHub delivery adapters → pull request/CI → Playwright evidence.
 
 ## Architecture
 
 - **Web:** Next.js + TypeScript
-- **Core API:** ASP.NET Core
-- **AI service:** Python + FastAPI
-- **Data:** PostgreSQL / pgvector
-- **Infrastructure:** Docker, later Terraform
-- **Observability:** OpenTelemetry
+- **Core workflow API:** ASP.NET Core
+- **AI boundary:** FastAPI + Pydantic, deterministic or OpenAI provider
+- **System of record:** PostgreSQL (Supabase-compatible)
+- **E2E:** Playwright
+- **Runtime:** Docker Compose
+- **CI/CD:** GitHub Actions
 
-See `docs/architecture/README.md` for the evolving architecture.
+The Core API owns workflow state, approvals and audit history. AI output is always a proposal. External integrations are adapter ports and fail closed when they are not configured.
 
-## Status
+## Run locally
 
-Phase 1 foundation is under active development.
+```bash
+cp .env.example .env
+docker compose up --build
+```
+
+Open the web workspace at `http://localhost:3000`. The deterministic AI provider is the default, so the core demo needs no paid API key.
+
+## Production AI
+
+Set `AI_PROVIDER=openai`, `AI_MODEL`, and `OPENAI_API_KEY`. AI responses are contract-validated before crossing the AI-service boundary.
+
+## Quality
+
+CI builds the .NET API and Next.js app, runs Python tests, boots the full Docker stack, and executes Playwright E2E smoke coverage.
+
+## Design documentation
+
+See `docs/architecture`, `docs/adr`, `docs/SECURITY.md`, `docs/ENTERPRISE.md`, `docs/AI-PROVIDERS.md`, and `docs/DEMO.md`.
