@@ -25,3 +25,25 @@ def test_analysis_is_structured():
     assert body["userStories"]
     assert body["userStories"][0]["acceptanceCriteria"]
     assert body["openQuestions"]
+
+
+def test_code_change_contract_is_safe_in_deterministic_mode():
+    response = client.post(
+        "/v1/propose-code-changes",
+        json={
+            "repository": "owner/repo",
+            "tasks": [{
+                "id": "DEV-01",
+                "title": "Add endpoint",
+                "description": "Add a reviewed endpoint.",
+                "filesLikelyAffected": [],
+                "validation": ["Run tests"],
+            }],
+            "files": [],
+            "memory": [],
+        },
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["changes"] == []
+    assert body["risks"]

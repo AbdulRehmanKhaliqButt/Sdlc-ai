@@ -18,6 +18,10 @@ services:
   ai-service:
     build:
       context: ./apps/ai-service
+    environment:
+      AI_PROVIDER: ${AI_PROVIDER:-deterministic}
+      AI_MODEL: ${AI_MODEL:-gpt-5-mini}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
     ports:
       - "8000:8000"
 
@@ -27,6 +31,7 @@ services:
     environment:
       AiService__BaseUrl: http://ai-service:8000
       ConnectionStrings__SdlcAi: Host=postgres;Port=5432;Database=sdlc_ai;Username=postgres;Password=postgres
+      GitHub__Token: ${GITHUB_TOKEN:-}
       ASPNETCORE_URLS: http://+:8080
     ports:
       - "8080:8080"
