@@ -65,9 +65,26 @@ docker compose up --build
 
 Open the web workspace at `http://localhost:3000`.
 
+The browser now exposes the complete guided workflow: project selection, requirements and approvals, Project Brain, QA planning, Playwright proposal generation, development planning, repository intelligence, code-proposal review, and approved pull-request creation. Existing projects can be reopened and resume from their latest persisted state.
+
 The deterministic AI provider is the default. It supports requirements analysis and contract testing without a paid API key, but intentionally returns **no repository mutations**.
 
 > If you already ran an older schema locally, reset the local demo database once with `docker compose down -v` before starting this version. The project currently uses EF Core `EnsureCreated` for its portfolio/demo database.
+
+## Use the browser workflow
+
+1. Create or select a project.
+2. Paste a grooming transcript and generate requirements.
+3. Review and approve requirements.
+4. Add durable architecture/domain/convention notes to **Project Brain**.
+5. Generate and approve the QA plan; optionally inspect the Playwright proposal.
+6. Generate and approve the implementation plan.
+7. Enter a GitHub repository in `owner/repository` form and run repository analysis.
+8. Generate the code proposal. This is read-only and does not write to GitHub.
+9. Review proposed files, validation commands and risks.
+10. Click **Approve changes & create pull request** only when the proposal is acceptable.
+
+For a safe first run, leave `AI_PROVIDER=deterministic`. The final code proposal will contain zero changes by design.
 
 ## Enable production AI
 
