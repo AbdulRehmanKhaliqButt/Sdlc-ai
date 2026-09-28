@@ -106,6 +106,9 @@ public sealed class WorkspaceService(SdlcAiDbContext db)
                 deliveryEntity.BranchName,
                 deliveryEntity.Status,
                 JsonSerializer.Deserialize<CodeChangeProposal>(deliveryEntity.ProposalJson, Json)!,
+                string.IsNullOrWhiteSpace(deliveryEntity.ValidationJson)
+                    ? null
+                    : JsonSerializer.Deserialize<ValidationEvidence>(deliveryEntity.ValidationJson, Json),
                 deliveryEntity.PullRequestNumber,
                 deliveryEntity.PullRequestUrl,
                 deliveryEntity.CreatedAt,
