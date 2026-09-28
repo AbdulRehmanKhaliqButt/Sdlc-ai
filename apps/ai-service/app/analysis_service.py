@@ -3,10 +3,11 @@ import json
 from .main_models import (
     CodeChangeProposal,
     CodeChangeRequest,
+    RepairCodeRequest,
     RequirementAnalysis,
     UserStory,
 )
-from .prompts import CODE_CHANGE_SYSTEM_PROMPT, REQUIREMENTS_SYSTEM_PROMPT
+from .prompts import CODE_CHANGE_SYSTEM_PROMPT, REPAIR_SYSTEM_PROMPT, REQUIREMENTS_SYSTEM_PROMPT
 from .provider import ModelProvider
 
 
@@ -79,5 +80,45 @@ REPOSITORY CONTEXT
 
 Return the complete JSON code-change proposal defined by the system instructions."""
     result = provider.generate(CODE_CHANGE_SYSTEM_PROMPT, prompt)
+    payload = json.loads(result.content)
+    return CodeChangeProposal.model_validate(payload)
+
+
+
+def repair_code_changes(request: RepairCodeRequest, provider: ModelProvider) -> CodeChangeProposal:
+    if provider.__class__.__name__ == "DeterministicProvider":
+        return request.previousProposal
+
+    validation_text = "\n\n".join(
+        f"COMMAND: {result.command}\n"
+        f"EXIT: {result.exitCode}\n"
+        f"BLOCKED: {result.blocked}\n"
+        f"STDOUT:\n{result.stdout[-8000:]}\n"
+        f"STDERR:\n{result.stderr[-8000:]}"
+        for result in request.validation
+    )
+    file_text = "\n\n".join(
+        f"--- FILE: {file.path} ---\n{file.content}" for file in request.files
+    ) or "(no repository files supplied)"
+    memory_text = "\n".join(
+        f"- [{item.kind}] {item.content}" for item in request.memory
+    ) or "(none)"
+
+    prompt = f"""Repository: {request.repository}
+
+PREVIOUS PROPOSAL
+{request.previousProposal.model_dump_json(indent=2)}
+
+SANDBOX VALIDATION OUTPUT
+{validation_text}
+
+PROJECT MEMORY
+{memory_text}
+
+REPOSITORY CONTEXT
+{file_text}
+
+Return a repaired complete CodeChangeProposal."""
+    result = provider.generate(REPAIR_SYSTEM_PROMPT, prompt)
     payload = json.loads(result.content)
     return CodeChangeProposal.model_validate(payload)
