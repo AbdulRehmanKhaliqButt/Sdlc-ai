@@ -25,21 +25,55 @@ services:
     ports:
       - "8000:8000"
 
+  runner:
+    build:
+      context: ./apps/runner
+    environment:
+      SANDBOX_COMMAND_TIMEOUT_SECONDS: ${SANDBOX_COMMAND_TIMEOUT_SECONDS:-180}
+      HOME: /tmp/home
+      DOTNET_CLI_HOME: /tmp/home
+      NUGET_PACKAGES: /tmp/nuget
+      npm_config_cache: /tmp/npm-cache
+    read_only: true
+    tmpfs:
+      - /tmp:exec,size=2g
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 256
+    mem_limit: 3g
+    cpus: 2.0
+    networks:
+      - sandbox_net
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8090/health')"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
   api:
     build:
       context: ./apps/api/SdlcAi.Api
     environment:
       AiService__BaseUrl: http://ai-service:8000
+      Sandbox__BaseUrl: http://runner:8090
+      Sandbox__MaxRepairAttempts: ${SANDBOX_MAX_REPAIR_ATTEMPTS:-2}
       ConnectionStrings__SdlcAi: Host=postgres;Port=5432;Database=sdlc_ai;Username=postgres;Password=postgres
       GitHub__Token: ${GITHUB_TOKEN:-}
       ASPNETCORE_URLS: http://+:8080
     ports:
       - "8080:8080"
+    networks:
+      - default
+      - sandbox_net
     depends_on:
       postgres:
         condition: service_healthy
       ai-service:
         condition: service_started
+      runner:
+        condition: service_healthy
 
   web:
     build:
@@ -53,3 +87,6 @@ services:
 
 volumes:
   sdlc_ai_data:
+
+networks:
+  sandbox_net:
