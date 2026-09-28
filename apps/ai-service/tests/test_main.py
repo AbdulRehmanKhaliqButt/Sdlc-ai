@@ -47,3 +47,32 @@ def test_code_change_contract_is_safe_in_deterministic_mode():
     body = response.json()
     assert body["changes"] == []
     assert body["risks"]
+
+
+
+def test_repair_contract_is_stable_in_deterministic_mode():
+    proposal = {
+        "summary": "Change",
+        "changes": [{"path": "a.txt", "action": "update", "content": "x", "reason": "test"}],
+        "commands": ["dotnet test"],
+        "risks": [],
+    }
+    response = client.post(
+        "/v1/repair-code-changes",
+        json={
+            "repository": "owner/repo",
+            "previousProposal": proposal,
+            "validation": [{
+                "command": "dotnet test",
+                "exitCode": 1,
+                "durationMs": 10,
+                "stdout": "",
+                "stderr": "failure",
+                "blocked": False,
+            }],
+            "files": [],
+            "memory": [],
+        },
+    )
+    assert response.status_code == 200
+    assert response.json() == proposal
