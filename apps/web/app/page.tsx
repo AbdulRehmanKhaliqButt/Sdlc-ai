@@ -378,6 +378,7 @@ export default function Home() {
         <div className="project-picker">
           <label htmlFor="existing-project">Existing project</label>
           <select
+            id="existing-project"
             value={workspace?.project.id ?? ""}
             onChange={(e) => e.target.value && loadWorkspace(e.target.value)}
             disabled={busy === "workspace"}
@@ -396,8 +397,8 @@ export default function Home() {
             <input id="project-name" value={projectName} onChange={(e) => setProjectName(e.target.value)} />
           </div>
           <div>
-            <label>Description</label>
-            <input value={projectDescription} onChange={(e) => setProjectDescription(e.target.value)} />
+            <label htmlFor="project-description">Description</label>
+            <input id="project-description" value={projectDescription} onChange={(e) => setProjectDescription(e.target.value)} />
           </div>
           <button disabled={Boolean(busy) || !projectName.trim()}>
             {busy === "project" ? "Creating…" : "Create project"}
@@ -441,8 +442,8 @@ export default function Home() {
                 </div>
                 {analysis && <span className="status">{analysis.status}</span>}
               </div>
-              <label>Grooming transcript</label>
-              <textarea rows={10} value={transcript} onChange={(e) => setTranscript(e.target.value)} />
+              <label htmlFor="grooming-transcript">Grooming transcript</label>
+              <textarea id="grooming-transcript" rows={10} value={transcript} onChange={(e) => setTranscript(e.target.value)} />
               <div className="actions">
                 <button onClick={analyzeRequirements} disabled={Boolean(busy) || !transcript.trim()}>
                   {busy === "analysis" ? "Analyzing…" : analysis ? "Generate new analysis" : "Analyze requirements"}
@@ -484,8 +485,8 @@ export default function Home() {
               </div>
               <div className="three-col">
                 <div>
-                  <label>Kind</label>
-                  <select value={memoryKind} onChange={(e) => setMemoryKind(e.target.value)}>
+                  <label htmlFor="memory-kind">Kind</label>
+                  <select id="memory-kind" value={memoryKind} onChange={(e) => setMemoryKind(e.target.value)}>
                     <option value="architecture">Architecture</option>
                     <option value="coding-convention">Coding convention</option>
                     <option value="domain">Domain knowledge</option>
@@ -494,12 +495,12 @@ export default function Home() {
                   </select>
                 </div>
                 <div className="wide">
-                  <label>Knowledge</label>
-                  <input value={memoryContent} onChange={(e) => setMemoryContent(e.target.value)} />
+                  <label htmlFor="memory-content">Knowledge</label>
+                  <input id="memory-content" value={memoryContent} onChange={(e) => setMemoryContent(e.target.value)} />
                 </div>
                 <div>
-                  <label>Tags</label>
-                  <input value={memoryTags} onChange={(e) => setMemoryTags(e.target.value)} />
+                  <label htmlFor="memory-tags">Tags</label>
+                  <input id="memory-tags" value={memoryTags} onChange={(e) => setMemoryTags(e.target.value)} />
                 </div>
               </div>
               <button onClick={addMemory} disabled={Boolean(busy) || !memoryContent.trim()}>
@@ -608,16 +609,17 @@ export default function Home() {
               </div>
               <div className="two-col">
                 <div>
-                  <label>Repository</label>
+                  <label htmlFor="target-repository">Repository</label>
                   <input
+                    id="target-repository"
                     placeholder="owner/repository"
                     value={repository}
                     onChange={(e) => setRepository(e.target.value)}
                   />
                 </div>
                 <div>
-                  <label>Repository task/query</label>
-                  <input value={repositoryQuery} onChange={(e) => setRepositoryQuery(e.target.value)} />
+                  <label htmlFor="repository-query">Repository task/query</label>
+                  <input id="repository-query" value={repositoryQuery} onChange={(e) => setRepositoryQuery(e.target.value)} />
                 </div>
               </div>
               <button onClick={analyzeRepository} disabled={Boolean(busy) || dev?.status !== "Approved" || !repository.trim()}>
