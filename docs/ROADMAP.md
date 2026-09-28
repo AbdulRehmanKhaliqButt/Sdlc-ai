@@ -59,13 +59,23 @@
 - Incremental repository embeddings / pgvector retrieval
 - Context-budget optimization and deduplication
 
-## Next — execution sandbox
-- Clone approved branch into an isolated worker
-- Apply proposal in sandbox before GitHub writes
-- Run build, unit tests, linters and static analysis
-- Feed failures back to a repair loop
-- Persist command output, diffs and artifacts
-- Block PR creation when mandatory quality gates fail
+## Implemented — execution sandbox and repair loop
+- Clone the target default branch into a dedicated isolated worker
+- Apply the proposed full-file changes before GitHub writes
+- Execute allowlisted .NET, Node, Python and Playwright validation commands without a shell
+- Support safe monorepo npm validation via relative --prefix paths
+- Feed exact command failures back to an evidence-grounded AI repair loop
+- Reapply repaired proposals to a fresh clone and rerun validation
+- Persist command output, exit codes, timings and repair attempts
+- Block PR creation until mandatory sandbox validation passes
+- Run the worker without a Docker socket, with dropped capabilities, read-only root filesystem and resource limits
+
+## Next — stronger sandboxing and execution evidence
+- Per-run network egress policy / dependency proxy
+- Ephemeral Kubernetes or microVM execution backend for untrusted third-party repositories
+- SBOM and dependency-vulnerability scanning
+- Static-analysis adapters (Semgrep, CodeQL-compatible export)
+- Persist compressed test artifacts, coverage and structured diffs
 
 ## Next — richer QA automation
 - AI-generated product-specific Playwright selectors/actions from repository context
