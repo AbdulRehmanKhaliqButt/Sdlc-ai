@@ -50,6 +50,30 @@ type RepositoryAnalysis = {
   analyzedAt: string;
 };
 type FileChange = { path: string; action: string; content: string; reason: string };
+type SandboxCommandResult = {
+  command: string;
+  exitCode: number;
+  durationMs: number;
+  stdout: string;
+  stderr: string;
+  blocked: boolean;
+};
+type ValidationEvidence = {
+  passed: boolean;
+  repairCount: number;
+  attempts: {
+    attempt: number;
+    proposalSummary: string;
+    validation: {
+      passed: boolean;
+      repository: string;
+      branch: string;
+      changedFiles: string[];
+      commands: SandboxCommandResult[];
+    };
+  }[];
+  failureSummary?: string | null;
+};
 type DeliveryRun = {
   id: string;
   repository: string;
@@ -62,6 +86,7 @@ type DeliveryRun = {
     commands: string[];
     risks: string[];
   };
+  validation?: ValidationEvidence | null;
   pullRequestNumber?: number | null;
   pullRequestUrl?: string | null;
 };
@@ -332,7 +357,19 @@ export default function Home() {
           method: "POST",
           body: JSON.stringify({ implementationPlanId: dev.id, repository: repository.trim(), branchName: null }),
         }),
-      "Code proposal generated. No GitHub write has happened yet."
+      "Code proposal generated and validated in the isolated sandbox. No GitHub write has happened yet."
+    );
+  }
+
+  async function retryValidation() {
+    if (!workspace || !delivery) return;
+    await runAndRefresh(
+      "delivery-validate",
+      () =>
+        request(`/api/projects/${workspace.project.id}/development/delivery-runs/${delivery.id}/validate`, {
+          method: "POST",
+        }),
+      "Sandbox validation completed. Review the latest evidence and repaired proposal."
     );
   }
 
@@ -429,7 +466,10 @@ export default function Home() {
               <div className={statusClass(dev?.status === "Approved", Boolean(dev) && dev?.status !== "Approved")}><span>6</span>Dev approval</div>
               <div className={statusClass(Boolean(repoAnalysis), dev?.status === "Approved" && !repoAnalysis)}><span>7</span>Repository</div>
               <div className={statusClass(Boolean(delivery), Boolean(repoAnalysis) && !delivery)}><span>8</span>Code proposal</div>
-              <div className={statusClass(delivery?.status === "PullRequestOpened", delivery?.status === "PendingApproval")}><span>9</span>Pull request</div>
+              <div className={statusClass(
+                delivery?.status === "PullRequestOpened",
+                delivery?.status === "ValidatedPendingApproval" || delivery?.status === "ValidationFailed"
+              )}><span>9</span>Validate & PR</div>
             </nav>
           </aside>
 
@@ -645,10 +685,11 @@ export default function Home() {
                 {delivery && <span className="status">{delivery.status}</span>}
               </div>
               <p>
-                Generating a delivery run does <strong>not</strong> modify GitHub. It creates a proposal for you to review first.
+                Generating a delivery run does <strong>not</strong> modify GitHub. The proposal is applied inside an isolated
+                runner, validated with allowlisted build/test commands, and repaired automatically when validation fails.
               </p>
               <button onClick={createDelivery} disabled={Boolean(busy) || dev?.status !== "Approved" || !repository.trim()}>
-                {busy === "delivery" ? "Generating proposal…" : "Generate code proposal"}
+                {busy === "delivery" ? "Generating, testing & repairing…" : "Generate + validate code proposal"}
               </button>
 
               {delivery && (
@@ -695,14 +736,53 @@ export default function Home() {
 
                   {delivery.proposal.commands.length > 0 && (
                     <>
-                      <h3>Suggested validation</h3>
+                      <h3>Validation commands</h3>
                       <div className="file-list">{delivery.proposal.commands.map((cmd) => <code key={cmd}>{cmd}</code>)}</div>
                     </>
                   )}
 
-                  {delivery.status === "PendingApproval" && (
+                  {delivery.validation && (
+                    <div className={delivery.validation.passed ? "validation-box validation-pass" : "validation-box validation-fail"}>
+                      <div className="validation-title">
+                        <strong>{delivery.validation.passed ? "Sandbox validation passed" : "Sandbox validation failed"}</strong>
+                        <span>{delivery.validation.repairCount} AI repair{delivery.validation.repairCount === 1 ? "" : "s"}</span>
+                      </div>
+                      {delivery.validation.failureSummary && <p>{delivery.validation.failureSummary}</p>}
+                      {delivery.validation.attempts.map((attempt) => (
+                        <details className="validation-attempt" key={attempt.attempt} open={attempt.attempt === delivery.validation?.attempts.length}>
+                          <summary>
+                            Attempt {attempt.attempt} · {attempt.validation.passed ? "passed" : "failed"} · {attempt.proposalSummary}
+                          </summary>
+                          {attempt.validation.commands.map((result) => (
+                            <div className="command-result" key={result.command}>
+                              <div>
+                                <code>{result.command}</code>
+                                <span className={result.exitCode === 0 ? "exit-ok" : "exit-bad"}>
+                                  exit {result.exitCode} · {result.durationMs} ms{result.blocked ? " · blocked" : ""}
+                                </span>
+                              </div>
+                              {(result.stdout || result.stderr) && (
+                                <details>
+                                  <summary>Logs</summary>
+                                  <pre>{[result.stdout, result.stderr].filter(Boolean).join("\n")}</pre>
+                                </details>
+                              )}
+                            </div>
+                          ))}
+                        </details>
+                      ))}
+                    </div>
+                  )}
+
+                  {delivery.status === "ValidationFailed" && (
+                    <button className="secondary" onClick={retryValidation} disabled={Boolean(busy)}>
+                      {busy === "delivery-validate" ? "Revalidating…" : "Retry validation & repair"}
+                    </button>
+                  )}
+
+                  {delivery.status === "ValidatedPendingApproval" && (
                     <button className="danger-action" onClick={approveDelivery} disabled={Boolean(busy)}>
-                      {busy === "delivery-approve" ? "Creating branch and PR…" : "Approve changes & create pull request"}
+                      {busy === "delivery-approve" ? "Creating branch and PR…" : "Approve validated changes & create pull request"}
                     </button>
                   )}
 
