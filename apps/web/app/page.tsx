@@ -376,7 +376,7 @@ export default function Home() {
 
       <section className="project-bar panel">
         <div className="project-picker">
-          <label>Existing project</label>
+          <label htmlFor="existing-project">Existing project</label>
           <select
             value={workspace?.project.id ?? ""}
             onChange={(e) => e.target.value && loadWorkspace(e.target.value)}
@@ -392,8 +392,8 @@ export default function Home() {
         </div>
         <form className="new-project" onSubmit={createProject}>
           <div>
-            <label>New project name</label>
-            <input value={projectName} onChange={(e) => setProjectName(e.target.value)} />
+            <label htmlFor="project-name">New project name</label>
+            <input id="project-name" value={projectName} onChange={(e) => setProjectName(e.target.value)} />
           </div>
           <div>
             <label>Description</label>
