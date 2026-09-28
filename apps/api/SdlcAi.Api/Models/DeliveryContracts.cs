@@ -46,6 +46,7 @@ public sealed record SandboxExecutionResult(
     bool Passed,
     string Repository,
     string Branch,
+    string BaseCommitSha,
     IReadOnlyList<string> ChangedFiles,
     IReadOnlyList<SandboxCommandResult> Commands);
 
