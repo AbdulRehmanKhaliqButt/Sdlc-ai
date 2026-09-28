@@ -1,11 +1,12 @@
 import json
 from fastapi import FastAPI, HTTPException
 
-from .analysis_service import analyze, propose_code_changes
+from .analysis_service import analyze, propose_code_changes, repair_code_changes
 from .main_models import (
     AnalyzeRequest,
     CodeChangeProposal,
     CodeChangeRequest,
+    RepairCodeRequest,
     RequirementAnalysis,
 )
 from .provider import get_provider
@@ -32,3 +33,12 @@ def code_change_proposal(request: CodeChangeRequest) -> CodeChangeProposal:
         return propose_code_changes(request, get_provider())
     except (ValueError, RuntimeError, json.JSONDecodeError) as exc:
         raise HTTPException(status_code=502, detail=f"AI provider response failed validation: {exc}") from exc
+
+
+
+@app.post("/v1/repair-code-changes", response_model=CodeChangeProposal)
+def repair_code_proposal(request: RepairCodeRequest) -> CodeChangeProposal:
+    try:
+        return repair_code_changes(request, get_provider())
+    except (ValueError, RuntimeError, json.JSONDecodeError) as exc:
+        raise HTTPException(status_code=502, detail=f"AI repair response failed validation: {exc}") from exc
