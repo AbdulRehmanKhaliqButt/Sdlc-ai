@@ -46,4 +46,32 @@ public sealed class AiAnalysisClient(HttpClient httpClient)
         return await response.Content.ReadFromJsonAsync<CodeChangeProposal>(cancellationToken: ct)
             ?? throw new InvalidOperationException("AI service returned an empty code-change proposal.");
     }
+    public async Task<CodeChangeProposal> RepairCodeChangesAsync(
+        string repository,
+        CodeChangeProposal previousProposal,
+        SandboxExecutionResult validation,
+        IReadOnlyList<RepositoryFileContext> files,
+        IReadOnlyList<ProjectMemory> memory,
+        CancellationToken ct)
+    {
+        var compactFiles = files.Select(x =>
+            x.Content.Length > 12_000 ? x with { Content = x.Content[..12_000] } : x).ToList();
+
+        using var response = await httpClient.PostAsJsonAsync(
+            "/v1/repair-code-changes",
+            new
+            {
+                repository,
+                previousProposal,
+                validation = validation.Commands,
+                files = compactFiles,
+                memory
+            },
+            ct);
+
+        response.EnsureSuccessStatusCode();
+
+        return await response.Content.ReadFromJsonAsync<CodeChangeProposal>(cancellationToken: ct)
+            ?? throw new InvalidOperationException("AI service returned an empty repair proposal.");
+    }
 }

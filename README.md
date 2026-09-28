@@ -4,7 +4,7 @@ An enterprise-oriented, human-in-the-loop AI software delivery platform.
 
 ## Workflow
 
-Grooming transcript → structured requirements → Product Owner approval → QA test plan → QA approval → development plan → developer approval → repository intelligence → AI code-change proposal → human approval → GitHub branch/PR → CI → Playwright evidence.
+Grooming transcript → structured requirements → Product Owner approval → QA test plan → QA approval → development plan → developer approval → repository intelligence → AI code-change proposal → isolated sandbox validation → AI repair loop when needed → human approval → GitHub branch/PR → CI → Playwright evidence.
 
 ## Architecture
 
@@ -13,6 +13,7 @@ Grooming transcript → structured requirements → Product Owner approval → Q
 - **AI boundary:** FastAPI + Pydantic, deterministic or OpenAI provider
 - **System of record:** PostgreSQL (Supabase-compatible)
 - **Repository delivery:** GitHub REST adapter with explicit write approval
+- **Sandbox runner:** isolated FastAPI worker with .NET, Node, Python and Git tooling
 - **Project brain:** persisted project memory recalled during repository analysis and code generation
 - **E2E:** Playwright
 - **Runtime:** Docker Compose
@@ -46,7 +47,12 @@ The Core API owns workflow state, approvals and audit history. AI output is alwa
 - Generate structured, reviewable full-file code-change proposals from approved plans
 - Deterministic mode never proposes repository mutations
 - OpenAI mode can propose create/update operations, validation commands and review risks
-- Human approval creates an isolated GitHub branch
+- Proposed files are first applied to an isolated runner
+- Allowlisted build/test commands run before any GitHub write
+- Failed validation output is fed back to the AI repair agent and revalidated
+- Validation evidence, command logs, timings and repair attempts are persisted
+- PR approval remains blocked until sandbox validation passes
+- Human approval then creates an isolated GitHub branch
 - Approved file changes are written through GitHub's contents API
 - A pull request is opened with validation and review-risk context
 - CI and human review remain required before merge
@@ -80,9 +86,10 @@ The deterministic AI provider is the default. It supports requirements analysis 
 5. Generate and approve the QA plan; optionally inspect the Playwright proposal.
 6. Generate and approve the implementation plan.
 7. Enter a GitHub repository in `owner/repository` form and run repository analysis.
-8. Generate the code proposal. This is read-only and does not write to GitHub.
-9. Review proposed files, validation commands and risks.
-10. Click **Approve changes & create pull request** only when the proposal is acceptable.
+8. Generate the code proposal. SDLC AI automatically clones the target branch inside the sandbox, applies the proposal, and runs the allowlisted validation commands.
+9. If validation fails, the exact command output is sent to the repair agent. The repaired proposal is applied to a fresh clone and validation is rerun, up to the configured repair limit.
+10. Review the final files, risks, command logs, exit codes, timings and repair history. No GitHub write has happened yet.
+11. Click **Approve validated changes & create pull request** only after sandbox validation has passed and the proposal is acceptable.
 
 For a safe first run, leave `AI_PROVIDER=deterministic`. The final code proposal will contain zero changes by design.
 
@@ -119,6 +126,7 @@ POST /api/projects/{projectId}/qa/test-plans/{testPlanId}/e2e-proposal
 
 POST /api/projects/{projectId}/development/delivery-runs
 GET  /api/projects/{projectId}/development/delivery-runs/{runId}
+POST /api/projects/{projectId}/development/delivery-runs/{runId}/validate
 POST /api/projects/{projectId}/development/delivery-runs/{runId}/approve
 ```
 
@@ -132,9 +140,12 @@ CI builds the .NET API and Next.js app, runs Python tests, boots the full Docker
 2. Requirements, QA plans and implementation plans preserve human approval gates.
 3. Deterministic mode cannot mutate repositories.
 4. Code-change proposals are persisted before any repository write.
-5. Repository writes occur on an isolated branch after explicit approval.
-6. Pull requests still require normal CI and human review.
-7. Secrets are configuration only and must never be committed.
+5. Proposed code must pass isolated sandbox validation before PR approval is enabled.
+6. The sandbox has no Docker socket, drops Linux capabilities, uses a read-only container filesystem, and executes commands without a shell.
+7. Validation commands are allowlisted and path traversal / command chaining are rejected.
+8. Repository writes occur on an isolated branch after explicit approval.
+9. Pull requests still require normal CI and human review.
+10. Secrets are configuration only and must never be committed.
 
 ## Design documentation
 

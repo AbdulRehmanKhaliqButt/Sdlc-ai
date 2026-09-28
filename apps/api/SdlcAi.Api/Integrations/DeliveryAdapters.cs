@@ -22,7 +22,7 @@ public interface IJiraAdapter
 public interface IGitHubDeliveryAdapter
 {
     Task<RepositoryContext> GetContextAsync(string repository, string query, CancellationToken ct);
-    Task CreateBranchAsync(string repository, string branch, string fromBranch, CancellationToken ct);
+    Task CreateBranchAsync(string repository, string branch, string fromBranch, string? sourceSha, CancellationToken ct);
     Task UpsertFileAsync(string repository, string path, string content, string message, string branch, string? currentSha, CancellationToken ct);
     Task<PullRequestResult> CreatePullRequestAsync(string repository, string branch, string title, string body, CancellationToken ct);
 }
@@ -101,14 +101,25 @@ public sealed class GitHubRestDeliveryAdapter(HttpClient http, IConfiguration co
         return new RepositoryContext(defaultBranch, files, signals);
     }
 
-    public async Task CreateBranchAsync(string repository, string branch, string fromBranch, CancellationToken ct)
+    public async Task CreateBranchAsync(
+        string repository,
+        string branch,
+        string fromBranch,
+        string? sourceSha,
+        CancellationToken ct)
     {
         ConfigureHeaders(requireWrite: true);
-        using var sourceResponse = await http.GetAsync($"/repos/{repository}/git/ref/heads/{Uri.EscapeDataString(fromBranch)}", ct);
-        sourceResponse.EnsureSuccessStatusCode();
-        using var sourceDoc = JsonDocument.Parse(await sourceResponse.Content.ReadAsStringAsync(ct));
-        var sha = sourceDoc.RootElement.GetProperty("object").GetProperty("sha").GetString()
-            ?? throw new InvalidOperationException("GitHub did not return the source branch SHA.");
+
+        var sha = sourceSha;
+        if (string.IsNullOrWhiteSpace(sha))
+        {
+            using var sourceResponse = await http.GetAsync(
+                $"/repos/{repository}/git/ref/heads/{Uri.EscapeDataString(fromBranch)}", ct);
+            sourceResponse.EnsureSuccessStatusCode();
+            using var sourceDoc = JsonDocument.Parse(await sourceResponse.Content.ReadAsStringAsync(ct));
+            sha = sourceDoc.RootElement.GetProperty("object").GetProperty("sha").GetString()
+                ?? throw new InvalidOperationException("GitHub did not return the source branch SHA.");
+        }
 
         using var createResponse = await http.PostAsJsonAsync($"/repos/{repository}/git/refs",
             new { @ref = $"refs/heads/{branch}", sha }, ct);

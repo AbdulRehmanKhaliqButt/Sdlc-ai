@@ -23,6 +23,17 @@ jobs:
       - run: pytest apps/ai-service/tests
         env:
           PYTHONPATH: apps/ai-service
+  runner:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r apps/runner/requirements.txt
+      - run: pytest apps/runner/tests
+        env:
+          PYTHONPATH: apps/runner
   web:
     runs-on: ubuntu-latest
     steps:
@@ -36,7 +47,7 @@ jobs:
         working-directory: apps/web
   e2e:
     runs-on: ubuntu-latest
-    needs: [api, ai, web]
+    needs: [api, ai, runner, web]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

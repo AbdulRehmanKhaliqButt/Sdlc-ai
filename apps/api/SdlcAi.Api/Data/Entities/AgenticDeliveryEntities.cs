@@ -31,6 +31,7 @@ public sealed class DeliveryRunEntity
     public required string Status { get; set; }
     public required string ContextJson { get; set; }
     public required string ProposalJson { get; set; }
+    public string? ValidationJson { get; set; }
     public int? PullRequestNumber { get; set; }
     public string? PullRequestUrl { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
