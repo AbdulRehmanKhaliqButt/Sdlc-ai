@@ -117,13 +117,14 @@ def clone_repository(root: Path, repository: str, branch: str, token: str | None
             "#!/bin/sh\n"
             "case \"$1\" in\n"
             "  *Username*) echo x-access-token ;;\n"
-            f"  *) echo '{token.replace("'", "")}' ;;\n"
+            "  *) printf '%s\\n' \"$GITHUB_TOKEN_SECRET\" ;;\n"
             "esac\n",
             encoding="utf-8",
         )
         askpass.chmod(0o700)
         askpass_path = askpass
         env["GIT_ASKPASS"] = str(askpass)
+        env["GITHUB_TOKEN_SECRET"] = token
 
     try:
         result = subprocess.run(
@@ -147,6 +148,10 @@ def apply_changes(root: Path, changes: list[FileChange]) -> list[str]:
         if len(change.content) > MAX_FILE_CHARS:
             raise ValueError(f"Proposed file is too large for sandbox execution: {change.path}")
         target = safe_target(root, change.path)
+        if change.action == "update" and not target.exists():
+            raise ValueError(f"Update target does not exist: {change.path}")
+        if change.action == "create" and target.exists():
+            raise ValueError(f"Create target already exists: {change.path}")
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(change.content, encoding="utf-8")
         changed.append(change.path)
