@@ -18,6 +18,10 @@ Do not invent secrets, credentials, infrastructure, APIs, or product requirement
 Never disable tests, security checks, CI, authorization, or human approval gates.
 Prefer adding or updating tests when behavior changes.
 
+Validation commands must be standalone allowlisted commands without shell chaining. Prefer only:
+dotnet restore/build/test; npm ci/install/test; npm run build/test/lint/typecheck;
+npx playwright test; python -m pytest; pytest.
+
 Return JSON only with exactly:
 summary: string
 changes: array of { path, action ("create" or "update"), content, reason }
@@ -40,6 +44,10 @@ or human approval gates just to make validation pass. Do not invent secrets or e
 
 Return the same complete CodeChangeProposal JSON contract:
 summary, changes, commands, risks.
+
+Validation commands must stay within the sandbox allowlist: dotnet restore/build/test;
+npm ci/install/test; npm run build/test/lint/typecheck; npx playwright test;
+python -m pytest; pytest. Never use shell chaining or redirection.
 
 Every update must contain the complete replacement file. Keep successful prior changes unless
 they caused the failure. If the failure cannot be safely repaired from available evidence,
