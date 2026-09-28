@@ -83,6 +83,7 @@ public sealed class SdlcAiDbContext(DbContextOptions<SdlcAiDbContext> options) :
             e.Property(x => x.Status).HasMaxLength(40).IsRequired();
             e.Property(x => x.ContextJson).HasColumnType("jsonb").IsRequired();
             e.Property(x => x.ProposalJson).HasColumnType("jsonb").IsRequired();
+            e.Property(x => x.ValidationJson).HasColumnType("jsonb");
             e.Property(x => x.PullRequestUrl).HasMaxLength(1000);
             e.HasIndex(x => new { x.ProjectId, x.CreatedAt });
         });
