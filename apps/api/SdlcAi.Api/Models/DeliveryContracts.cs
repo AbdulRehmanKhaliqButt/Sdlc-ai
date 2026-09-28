@@ -34,6 +34,32 @@ public sealed record CodeChangeProposal(
     IReadOnlyList<string> Commands,
     IReadOnlyList<string> Risks);
 
+public sealed record SandboxCommandResult(
+    string Command,
+    int ExitCode,
+    int DurationMs,
+    string Stdout,
+    string Stderr,
+    bool Blocked);
+
+public sealed record SandboxExecutionResult(
+    bool Passed,
+    string Repository,
+    string Branch,
+    IReadOnlyList<string> ChangedFiles,
+    IReadOnlyList<SandboxCommandResult> Commands);
+
+public sealed record RepairAttempt(
+    int Attempt,
+    string ProposalSummary,
+    SandboxExecutionResult Validation);
+
+public sealed record ValidationEvidence(
+    bool Passed,
+    int RepairCount,
+    IReadOnlyList<RepairAttempt> Attempts,
+    string? FailureSummary);
+
 public sealed record DeliveryRun(
     Guid Id,
     Guid ProjectId,
@@ -43,6 +69,7 @@ public sealed record DeliveryRun(
     string? BranchName,
     string Status,
     CodeChangeProposal Proposal,
+    ValidationEvidence? Validation,
     int? PullRequestNumber,
     string? PullRequestUrl,
     DateTimeOffset CreatedAt,
