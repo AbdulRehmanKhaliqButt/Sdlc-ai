@@ -60,6 +60,7 @@ class SandboxResult(BaseModel):
     passed: bool
     repository: str
     branch: str
+    baseCommitSha: str
     changedFiles: list[str]
     commands: list[CommandResult]
 
@@ -125,7 +126,7 @@ def safe_target(root: Path, relative: str) -> Path:
     return candidate
 
 
-def clone_repository(root: Path, repository: str, branch: str, token: str | None) -> None:
+def clone_repository(root: Path, repository: str, branch: str, token: str | None) -> str:
     if not REPOSITORY_RE.fullmatch(repository):
         raise ValueError("Repository must use owner/name format.")
 
@@ -159,6 +160,17 @@ def clone_repository(root: Path, repository: str, branch: str, token: str | None
         )
         if result.returncode != 0:
             raise RuntimeError(f"git clone failed: {result.stderr[-4000:]}")
+
+        head = subprocess.run(
+            ["git", "-C", str(root), "rev-parse", "HEAD"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            timeout=30,
+        )
+        if head.returncode != 0:
+            raise RuntimeError(f"git rev-parse failed: {head.stderr[-2000:]}")
+        return head.stdout.strip()
     finally:
         if askpass_path and askpass_path.exists():
             askpass_path.unlink()
@@ -232,7 +244,7 @@ def execute(request: SandboxRequest, x_github_token: str | None = Header(default
     with tempfile.TemporaryDirectory(prefix="sdlc-ai-") as temp:
         root = Path(temp) / "repo"
         try:
-            clone_repository(root, request.repository, request.branch, x_github_token)
+            base_commit_sha = clone_repository(root, request.repository, request.branch, x_github_token)
             changed = apply_changes(root, request.changes)
         except (ValueError, RuntimeError) as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -248,6 +260,7 @@ def execute(request: SandboxRequest, x_github_token: str | None = Header(default
             passed=bool(results) and all(result.exitCode == 0 for result in results),
             repository=request.repository,
             branch=request.branch,
+            baseCommitSha=base_commit_sha,
             changedFiles=changed,
             commands=results,
         )
