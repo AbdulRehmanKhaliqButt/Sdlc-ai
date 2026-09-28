@@ -20,7 +20,8 @@ Prefer adding or updating tests when behavior changes.
 
 Validation commands must be standalone allowlisted commands without shell chaining. Prefer only:
 dotnet restore/build/test; npm ci/install/test; npm run build/test/lint/typecheck;
-npx playwright test; python -m pytest; pytest.
+npx playwright test; python -m pytest; pytest. For monorepos, npm --prefix <relative-dir>
+ci/install/test or npm --prefix <relative-dir> run build/test/lint/typecheck is allowed.
 
 Return JSON only with exactly:
 summary: string
