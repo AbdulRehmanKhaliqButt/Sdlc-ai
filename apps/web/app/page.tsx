@@ -85,10 +85,7 @@ const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`${API}${path}`, {
     ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...(options?.headers ?? {}),
-    },
+    headers: { "Content-Type": "application/json" },
   });
 
   if (!response.ok) {
