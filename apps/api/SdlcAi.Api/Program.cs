@@ -19,6 +19,7 @@ builder.Services.AddScoped<ProjectMemoryService>();
 builder.Services.AddScoped<RepositoryIntelligenceService>();
 builder.Services.AddScoped<AgenticDeliveryService>();
 builder.Services.AddScoped<E2ePlanningService>();
+builder.Services.AddScoped<WorkspaceService>();
 builder.Services.AddSingleton<IJiraAdapter, DisabledJiraAdapter>();
 
 builder.Services.AddHttpClient<IGitHubDeliveryAdapter, GitHubRestDeliveryAdapter>(client =>
@@ -48,6 +49,13 @@ app.MapPost("/api/projects", async (CreateProjectRequest request, PersistentProj
 
 app.MapGet("/api/projects", async (PersistentProjectStore store, CancellationToken ct) =>
     Results.Ok(await store.GetAllAsync(ct)));
+
+app.MapGet("/api/projects/{projectId:guid}/workspace",
+    async (Guid projectId, WorkspaceService workspace, CancellationToken ct) =>
+    {
+        var snapshot = await workspace.GetAsync(projectId, ct);
+        return snapshot is null ? Results.NotFound() : Results.Ok(snapshot);
+    });
 
 app.MapPost("/api/projects/{projectId:guid}/analyses",
     async (Guid projectId, AnalyzeTranscriptRequest request, PersistentProjectStore store, IAnalysisEngine ai, CancellationToken ct) =>
