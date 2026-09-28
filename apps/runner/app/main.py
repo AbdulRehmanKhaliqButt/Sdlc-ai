@@ -77,6 +77,24 @@ def validate_command(command: str) -> list[str]:
     if not args:
         raise ValueError("Validation command is empty.")
 
+    for arg in args[1:]:
+        if arg.startswith("/") or ".." in Path(arg).parts:
+            raise ValueError("Absolute paths and parent-directory traversal are not allowed.")
+
+    if args[0] == "npm" and len(args) >= 4 and args[1] == "--prefix":
+        prefix = Path(args[2])
+        if prefix.is_absolute() or ".." in prefix.parts:
+            raise ValueError("npm --prefix must remain inside the repository.")
+        operation = args[3]
+        if operation not in {"ci", "install", "test", "run"}:
+            raise ValueError("Unsupported npm --prefix operation.")
+        if operation == "run":
+            if len(args) < 5 or args[4] not in {"build", "test", "lint", "typecheck"}:
+                raise ValueError("Only npm run build/test/lint/typecheck is allowed.")
+        elif any(not arg.startswith("-") for arg in args[4:]):
+            raise ValueError("npm install/ci/test may only include flags after the operation.")
+        return args
+
     prefix = tuple(args[:2])
     if tuple(args[:1]) in ALLOWED_COMMANDS:
         return args
@@ -86,8 +104,12 @@ def validate_command(command: str) -> list[str]:
     if args[0] in {"python", "python3"} and len(args) >= 3 and args[1] == "-m" and args[2] != "pytest":
         raise ValueError("Only python -m pytest is allowed.")
 
-    if args[0] == "npm" and len(args) >= 3 and args[1] == "run" and args[2] not in {"build", "test", "lint", "typecheck"}:
-        raise ValueError("Only npm run build/test/lint/typecheck is allowed.")
+    if args[0] == "npm":
+        if args[1] == "run":
+            if len(args) < 3 or args[2] not in {"build", "test", "lint", "typecheck"}:
+                raise ValueError("Only npm run build/test/lint/typecheck is allowed.")
+        elif any(not arg.startswith("-") for arg in args[2:]):
+            raise ValueError("npm install/ci/test may only include flags after the operation.")
 
     if args[0] == "npx" and (len(args) < 3 or args[1] != "playwright" or args[2] != "test"):
         raise ValueError("Only npx playwright test is allowed.")
