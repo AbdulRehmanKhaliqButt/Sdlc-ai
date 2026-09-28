@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 using SdlcAi.Api.Data;
 using SdlcAi.Api.Integrations;
@@ -8,6 +9,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddCors(options => options.AddDefaultPolicy(policy =>
     policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod()));
+builder.Services.ConfigureHttpJsonOptions(options =>
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 builder.Services.AddDbContext<SdlcAiDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("SdlcAi")
         ?? "Host=localhost;Port=5432;Database=sdlc_ai;Username=postgres;Password=postgres"));
