@@ -34,6 +34,11 @@ builder.Services.AddHttpClient<AiAnalysisClient>(client =>
 {
     client.BaseAddress = new Uri(builder.Configuration["AiService:BaseUrl"] ?? "http://localhost:8000");
 });
+builder.Services.AddHttpClient<SandboxRunnerClient>(client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["Sandbox:BaseUrl"] ?? "http://localhost:8090");
+    client.Timeout = TimeSpan.FromMinutes(15);
+});
 builder.Services.AddScoped<IAnalysisEngine, RemoteAnalysisEngine>();
 
 var app = builder.Build();
@@ -166,6 +171,20 @@ app.MapGet("/api/projects/{projectId:guid}/development/delivery-runs/{runId:guid
     {
         var run = await delivery.GetAsync(projectId, runId, ct);
         return run is null ? Results.NotFound() : Results.Ok(run);
+    });
+
+app.MapPost("/api/projects/{projectId:guid}/development/delivery-runs/{runId:guid}/validate",
+    async (Guid projectId, Guid runId, AgenticDeliveryService delivery, CancellationToken ct) =>
+    {
+        try
+        {
+            var run = await delivery.RevalidateAsync(projectId, runId, ct);
+            return run is null ? Results.NotFound() : Results.Ok(run);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Results.BadRequest(new { error = ex.Message });
+        }
     });
 
 app.MapPost("/api/projects/{projectId:guid}/development/delivery-runs/{runId:guid}/approve",
