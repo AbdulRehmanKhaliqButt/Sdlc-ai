@@ -60,3 +60,20 @@ class CodeChangeProposal(BaseModel):
     changes: list[FileChange]
     commands: list[str]
     risks: list[str]
+
+
+class ValidationCommandResult(BaseModel):
+    command: str
+    exitCode: int
+    durationMs: int
+    stdout: str
+    stderr: str
+    blocked: bool = False
+
+
+class RepairCodeRequest(BaseModel):
+    repository: str
+    previousProposal: CodeChangeProposal
+    validation: list[ValidationCommandResult] = Field(min_length=1)
+    files: list[RepositoryFile]
+    memory: list[ProjectMemory] = []
