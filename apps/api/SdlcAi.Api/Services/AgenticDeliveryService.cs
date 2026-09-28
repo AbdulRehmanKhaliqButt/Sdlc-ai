@@ -139,6 +139,7 @@ public sealed class AgenticDeliveryService(
                     false,
                     entity.Repository,
                     entity.DefaultBranch,
+                    "",
                     proposal.Changes.Select(x => x.Path).ToList(),
                     new[]
                     {
@@ -242,24 +243,21 @@ public sealed class AgenticDeliveryService(
             ? $"sdlc-ai/{entity.Id.ToString("N")[..10]}"
             : entity.BranchName.Trim();
 
-        await github.CreateBranchAsync(entity.Repository, branch, entity.DefaultBranch, ct);
+        var validatedBaseSha = evidence.Attempts.LastOrDefault()?.Validation.BaseCommitSha;
+        if (string.IsNullOrWhiteSpace(validatedBaseSha))
+            throw new InvalidOperationException("Validated base commit is missing. Re-run sandbox validation.");
 
-        var context = JsonSerializer.Deserialize<RepositoryContext>(entity.ContextJson, Json)
-            ?? throw new InvalidOperationException("Repository context is invalid.");
-        var knownShas = context.RelevantFiles
-            .Where(x => !string.IsNullOrWhiteSpace(x.Sha))
-            .ToDictionary(x => x.Path, x => x.Sha, StringComparer.OrdinalIgnoreCase);
+        await github.CreateBranchAsync(entity.Repository, branch, entity.DefaultBranch, validatedBaseSha, ct);
 
         foreach (var change in proposal.Changes)
         {
-            knownShas.TryGetValue(change.Path, out var sha);
             await github.UpsertFileAsync(
                 entity.Repository,
                 change.Path,
                 change.Content,
                 $"SDLC AI: {change.Reason}",
                 branch,
-                change.Action.Equals("create", StringComparison.OrdinalIgnoreCase) ? null : sha,
+                null,
                 ct);
         }
 
