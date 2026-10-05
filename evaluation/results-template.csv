@@ -1,0 +1,1 @@
+run_id,date,model,scenario,requirements_accepted,qa_accepted,initial_validation_passed,final_validation_passed,repair_count,pr_created,pr_accepted_without_manual_code_changes,total_seconds,estimated_ai_cost_usd,notes
