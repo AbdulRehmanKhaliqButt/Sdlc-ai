@@ -34,6 +34,20 @@ jobs:
       - run: pytest apps/runner/tests
         env:
           PYTHONPATH: apps/runner
+  evaluation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: dotnet test evaluation/scenarios/01-user-deactivation/tests/Evaluation.UserDeactivation.Tests.csproj --configuration Release
+      - run: dotnet test evaluation/scenarios/02-pagination/tests/Evaluation.Pagination.Tests.csproj --configuration Release
+      - run: npm test
+        working-directory: evaluation/scenarios/03-monorepo
   web:
     runs-on: ubuntu-latest
     steps:
@@ -47,7 +61,7 @@ jobs:
         working-directory: apps/web
   e2e:
     runs-on: ubuntu-latest
-    needs: [api, ai, runner, web]
+    needs: [api, ai, runner, evaluation, web]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
